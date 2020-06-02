@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include <algorithm>
 #include "PlayerBase.generated.h"
 
 UCLASS()
@@ -16,8 +17,15 @@ public:
 	APlayerBase();
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Status)
+		int maxHealth_ = 100;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Status)
+		int currentHealth_;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
 
 public:	
 	// Called every frame
@@ -25,5 +33,15 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	UFUNCTION(BlueprintCallable)
+		void FullRecoverHealth() { currentHealth_ = maxHealth_; }
+
+	UFUNCTION(BlueprintCallable)
+		void addHealth(int health) { currentHealth_ = std::min(maxHealth_, currentHealth_ + health); }
+
+	UFUNCTION(BlueprintPure)
+		bool isDead() const { return currentHealth_ <= 0; }
+
 
 };
