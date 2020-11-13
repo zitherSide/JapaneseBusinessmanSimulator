@@ -29,7 +29,10 @@ public:
 		FGameOver gameOverEvent_;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
-		class ATargetPoint* respawnPoint_;
+		class AActor* respawnPoint_;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Story)
+		TMap<FString, bool> gameFlags_;
 
 	UFUNCTION(BlueprintCallable, Category = Pawn)
 		void makePlayerRagdoll();

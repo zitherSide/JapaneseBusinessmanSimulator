@@ -34,7 +34,7 @@ protected:
 		float damage_ = 20.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
-		float lifespan_ = 1.f;
+		float lifespan_ = 1.3f;
 
 public:	
 	// Called every frame

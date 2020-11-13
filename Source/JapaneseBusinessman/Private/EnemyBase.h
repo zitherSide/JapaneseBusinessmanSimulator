@@ -22,6 +22,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
 		TArray<class ATargetPoint*> destinations_;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attack)
+		bool canDamage_ = true;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

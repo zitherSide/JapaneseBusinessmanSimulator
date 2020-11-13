@@ -24,4 +24,7 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = CharacterState)
 		void setCurrentHealth(int health) { health_ = health; }
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
+		class AJapaneseBusinessmanCharacter* playerPawn_;
 };

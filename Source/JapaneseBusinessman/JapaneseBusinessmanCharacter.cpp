@@ -9,7 +9,7 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/ArrowComponent.h"
 #include "Math/Vector.h"
 #include "GenericPlatform/GenericPlatformMath.h"
 #include "TimerManager.h"
@@ -49,6 +49,10 @@ AJapaneseBusinessmanCharacter::AJapaneseBusinessmanCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	//FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	throwDirection_ = CreateDefaultSubobject<UArrowComponent>(TEXT("ThrowDirection"));
+	throwDirection_->SetupAttachment(GetMesh());
+	knockBackDirection_ = CreateDefaultSubobject<UArrowComponent>(TEXT("KnockbackDirecttion"));
+	knockBackDirection_->SetupAttachment(GetMesh());
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 	PrimaryActorTick.bCanEverTick = true;
@@ -57,7 +61,6 @@ AJapaneseBusinessmanCharacter::AJapaneseBusinessmanCharacter()
 void AJapaneseBusinessmanCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	state_ = None;
 }
 
 void AJapaneseBusinessmanCharacter::Tick(float deltaSeconds)
@@ -69,31 +72,25 @@ void AJapaneseBusinessmanCharacter::Tick(float deltaSeconds)
 
 float AJapaneseBusinessmanCharacter::TakeDamage(float DamageAmount, FDamageEvent const & DamageEvent, AController * EventInstigator, AActor * DamageCauser)
 {
-	if (state_ & KnockBacking)
+	if (isKnockBacking_)
 		return 0.f;
 
-	FVector bounceDir;
-	bounceDir.Z = FGenericPlatformMath::Sin(knockBackAngle_ / 2.f / PI);
-	bounceDir.Y = FGenericPlatformMath::Cos(knockBackAngle_ / 2.f / PI);
-	if (GetMesh()->GetRightVector().Y > 0) {
-		bounceDir.Y *= -1;
-	}
-
-	state_ |= KnockBacking;
-	state_ &= ~Dashing;
+	FVector bounceDir = knockBackDirection_->GetComponentTransform().GetTranslation();
+	bounceDir.Normalize();
+	isKnockBacking_ = true;
+	isDashing_ = false;
 
 	currentHealth_ -= static_cast<int>(DamageAmount);
 	GetCharacterMovement()->Launch(bounceDir * knockBackForce_);
 	GetWorldTimerManager().ClearTimer(knockBackTimerHandle_);
-	GetWorldTimerManager().SetTimer(knockBackTimerHandle_, this, &AJapaneseBusinessmanCharacter::RecoverDamage, knockBackSeconds_);
+	GetWorldTimerManager().SetTimer(knockBackTimerHandle_, this, &AJapaneseBusinessmanCharacter::RecoverDamage, knockBackSeconds_, false);
 	
-	hudUpdateEvent_.Broadcast();
 	return DamageAmount;
 }
 
 void AJapaneseBusinessmanCharacter::RecoverDamage()
 {
-	state_ &= ~KnockBacking;
+	isKnockBacking_ = false;
 }
 //////////////////////////////////////////////////////////////////////////
 // Input
@@ -125,7 +122,8 @@ void AJapaneseBusinessmanCharacter::SetupPlayerInputComponent(class UInputCompon
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
 	//PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
 	//PlayerInputComponent->BindAxis("TurnRate", this, &AJapaneseBusinessmanCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &AJapaneseBusinessmanCharacter::SlideCamera);
+	PlayerInputComponent->BindAxis("TurnRate", this, &AJapaneseBusinessmanCharacter::YawCamera);
+	PlayerInputComponent->BindAxis("LookUpRate", this, &AJapaneseBusinessmanCharacter::PitchCamera);
 	//PlayerInputComponent->BindAxis("LookUpRate", this, &AJapaneseBusinessmanCharacter::LookUpAtRate);
 
 	// handle touch devices
@@ -136,11 +134,19 @@ void AJapaneseBusinessmanCharacter::SetupPlayerInputComponent(class UInputCompon
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AJapaneseBusinessmanCharacter::OnResetVR);
 }
 
-void AJapaneseBusinessmanCharacter::SlideCamera(float Value)
+void AJapaneseBusinessmanCharacter::PitchCamera(float Value)
 {
-	if (Value != 0.f) {
-		UE_LOG(LogTemp, Log, TEXT("slideCamera"));
-		CameraBoom->AddRelativeLocation({ 0, 0, 10 * Value });
+	if (std::abs(Value) > 0.1f) {
+		FRotator rot{ Value, 0, 0 };
+		CameraBoom->AddRelativeRotation(rot);
+	}
+}
+
+void AJapaneseBusinessmanCharacter::YawCamera(float Value)
+{
+	if (std::abs(Value) > 0.1f) {
+		FRotator rot{ 0, Value, 0 };
+		CameraBoom->AddRelativeRotation(rot);
 	}
 }
 
@@ -173,7 +179,7 @@ void AJapaneseBusinessmanCharacter::LookUpAtRate(float Rate)
 
 void AJapaneseBusinessmanCharacter::MoveForward(float Value)
 {
-	if (state_ & KnockBacking)
+	if (isKnockBacking_)
 		return;
 
 	if ((Controller != NULL) && (Value != 0.0f))
@@ -191,7 +197,7 @@ void AJapaneseBusinessmanCharacter::MoveForward(float Value)
 
 void AJapaneseBusinessmanCharacter::MoveRight(float Value)
 {
-	if (state_ & KnockBacking)
+	if (isKnockBacking_)
 		return;
 
 	if ( (Controller != NULL) && (Value != 0.0f) )
@@ -223,7 +229,7 @@ void AJapaneseBusinessmanCharacter::adjustMeshRotation()
 
 void AJapaneseBusinessmanCharacter::Jump()
 {
-	if (state_ & KnockBacking)
+	if (isKnockBacking_)
 		return;
 
 	Super::Jump();
@@ -239,29 +245,29 @@ void AJapaneseBusinessmanCharacter::Sprint()
 {
 	if (!GetCharacterMovement()->IsFalling()) {
 		GetCharacterMovement()->MaxWalkSpeed = sprintSpeed_;
-		GetCharacterMovement()->JumpZVelocity = highJumpSpeed_;
-		state_ |= Sprinting;
+		isSprinting_ = true;;
 	}
 }
 
 void AJapaneseBusinessmanCharacter::StopSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = runSpeed_;
-	GetCharacterMovement()->JumpZVelocity = jumpSpeed_;
-	state_ &= ~Sprinting;
+	isSprinting_ = false;
 }
 
 void AJapaneseBusinessmanCharacter::Dash()
 {
-	if (state_ & KnockBacking)
+	if (isKnockBacking_)
 		return;
 
-	const bool isDashing = state_ & Dashing;
 	UCharacterMovementComponent* m = GetCharacterMovement();
-	if (!isDashing && !m->IsFalling()) {
+	if (!isDashing_ && !m->IsFalling()) {
 
-		state_ |= Dashing;
-		m->JumpZVelocity = highJumpSpeed_;
+		isDashing_ = true;
+		GetCapsuleComponent()->SetCapsuleHalfHeight(dashHight_);
+		//GetCapsuleComponent()->AddRelativeLocation({ 0, 0, - standHight_ + dashHight_ });
+		m->MaxWalkSpeed = dashSpeed_;
+
 		GetWorldTimerManager().ClearTimer(dashTimerHandle_);
 		GetWorldTimerManager().SetTimer(dashTimerHandle_, this, &AJapaneseBusinessmanCharacter::StopDash, dashTime_);
 	}
@@ -270,16 +276,16 @@ void AJapaneseBusinessmanCharacter::Dash()
 void AJapaneseBusinessmanCharacter::StopDash()
 {
 	//空中でのダッシュ中をどうするか
-	state_ &= ~Dashing;
-	GetCharacterMovement()->MaxWalkSpeed = state_ & Sprinting ? sprintSpeed_ : runSpeed_;
-	GetCharacterMovement()->JumpZVelocity = state_ & Sprinting ? highJumpSpeed_ : jumpSpeed_;
+	isDashing_ = false;
+	GetCapsuleComponent()->SetCapsuleHalfHeight(standHight_);
+	//GetCapsuleComponent()->AddRelativeLocation({ 0, 0, standHight_ - dashHight_ });
+	GetCharacterMovement()->MaxWalkSpeed = runSpeed_;
 }
 
 void AJapaneseBusinessmanCharacter::adjustDashMovement()
 {
-	if (state_ & Dashing) {
+	if (isDashing_) {
 		UCharacterMovementComponent* m = GetCharacterMovement();
-		m->MaxWalkSpeed = dashSpeed_;
 
 		FVector direction = m->Velocity;
 		direction.Z = 0;	//水平速度をダッシュスピードにする
@@ -304,7 +310,7 @@ void AJapaneseBusinessmanCharacter::adjustDashMovement()
 
 void AJapaneseBusinessmanCharacter::adjustJumpMovement()
 {
-	if (state_ & KnockBacking)
+	if (isKnockBacking_)
 		return;
 
 	UCharacterMovementComponent* m = GetCharacterMovement();
@@ -315,10 +321,8 @@ void AJapaneseBusinessmanCharacter::adjustJumpMovement()
 
 void AJapaneseBusinessmanCharacter::Throw()
 {
-	FTransform t;
-	t.SetLocation(GetActorLocation());
-	FRotator r;
-	r.Yaw = GetMesh()->GetRightVector().Y > 0 ? 90.f : -90.f;
-	t.SetRotation(r.Quaternion());
+	FTransform t(throwDirection_->GetComponentTransform());
 	AProjectileBase* p = GetWorld()->SpawnActor<AProjectileBase>(throwObject_->GetDefaultObject()->GetClass(), t);
+	if(p)
+		p->SetLifeSpan(attackLifespan_);
 }

@@ -43,5 +43,6 @@ public:
 	UFUNCTION(BlueprintPure)
 		bool isDead() const { return currentHealth_ <= 0; }
 
-
+	UFUNCTION(BlueprintPure)
+		float getHealthRate() const { return (float)currentHealth_ / (float)maxHealth_; }
 };

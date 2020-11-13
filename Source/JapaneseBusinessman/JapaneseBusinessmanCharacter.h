@@ -10,8 +10,6 @@
 #include "Templates/SubclassOf.h"
 #include "JapaneseBusinessmanCharacter.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FHudUpdateEvent);
-
 UCLASS(config=Game)
 class AJapaneseBusinessmanCharacter : public APlayerBase
 {
@@ -39,25 +37,30 @@ public:
 		float dashSpeed_ = 2000.f;
 
 	UPROPERTY(EditAnywhere, Category = Movement)
-		float highJumpSpeed_ = 1500.f;
-
-	UPROPERTY(EditAnywhere, Category = Movement)
 		float dashTime_ = 0.3f;
 
 	UPROPERTY(EditAnywhere, Category = Movement)
-		float knockBackForce_ = 4000.f;
+		float knockBackForce_ = 40000.f;
 	UPROPERTY(EditAnywhere, Category = Movement)
 		float knockBackAngle_ = 30.f;
 
-	UPROPERTY(EditAnywhere, Category = Movement)
+	UPROPERTY(BlueprintReadWrite, Category = Movement)
+		bool isKnockBacking_ = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
 		float knockBackSeconds_ = 1.f;
 
-	UPROPERTY(BlueprintAssignable, Category = UI)
-		FHudUpdateEvent hudUpdateEvent_;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attack)
+		class UArrowComponent* throwDirection_;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attack)
+		float attackLifespan_ = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
+		class UArrowComponent* knockBackDirection_;
 
 protected:
 	/** Camera boom positioning the camera behind the character */
-	UPROPERTY(EditAnywhere, Category = Camera)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
 		class USpringArmComponent* CameraBoom;
 
 	/** Follow camera */
@@ -73,6 +76,11 @@ protected:
 
 	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = Skill)
 		TSubclassOf<AProjectileBase> throwObject_;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
+		float standHight_;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
+		float dashHight_;
 
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();
@@ -90,7 +98,8 @@ protected:
 	void StopDash();
 	void Throw();
 	
-	void SlideCamera(float Value);
+	void YawCamera(float Value);
+	void PitchCamera(float Value);
 	/** 
 	 * Called via input to turn at a given rate. 
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
@@ -117,7 +126,6 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float deltaSeconds) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-	void RecoverDamage();
 private:
 	FTimerHandle dashTimerHandle_;
 	FTimerHandle knockBackTimerHandle_;
@@ -127,17 +135,9 @@ private:
 	void adjustDashMovement();
 	void adjustJumpMovement();
 
-	FRotator getRightRotator();
-
-	enum StateMask {
-		None = 0,
-		Sprinting = 1 << 1,
-		Dashing = 1 << 2,
-		Slash1 = 1 << 3,
-		Slash1Follow = 1 << 4,
-		KnockBacking = 1 << 5,
-	};
-	int state_;
+	bool isSprinting_ = false;
+	bool isDashing_ = false;
+	
 
 public:
 	/** Returns CameraBoom subobject **/
@@ -145,11 +145,13 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-	UFUNCTION(BlueprintPure)
-		bool isDashing() const { return state_ & Dashing; }
+	UFUNCTION(BlueprintPure, BlueprintCallable)
+		bool isDashing() const { return isDashing_; }
 
-	UFUNCTION(BlueprintPure)
-		bool isKnockBacking() const { return state_ & KnockBacking; }
+	UFUNCTION(BlueprintPure, BlueprintCallable)
+		bool isKnockBacking() const { return isKnockBacking_; }
 
+	UFUNCTION(BlueprintCallable, Category = "Damage")
+	void RecoverDamage();
 };
 

@@ -20,6 +20,9 @@ void AEnemyBase::BeginPlay()
 
 float AEnemyBase::TakeDamage(float DamageAmount, FDamageEvent const & DamageEvent, AController * EventInstigator, AActor * DamageCauser)
 {
+	if (currentHealth_ <= 0)
+		return 0;
+
 	currentHealth_ = std::max(0, currentHealth_ - (int)DamageAmount);
 	FVector force;
 	if (DamageCauser) 
@@ -33,6 +36,7 @@ float AEnemyBase::TakeDamage(float DamageAmount, FDamageEvent const & DamageEven
 
 void AEnemyBase::Die(FVector force)
 {
+	canDamage_ = false;
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->AddImpulse(force);
