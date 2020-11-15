@@ -62,6 +62,9 @@ void UBossPunch::TickTask(UBehaviorTreeComponent & OwnerComp, uint8 * NodeMemory
 		boss->GetCapsuleComponent()->SetCollisionEnabled(prevCollision_);
 		boss->EndPunch();
 		boss->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+		FVector pos = boss->GetActorLocation();
+		pos.Z = std::max(5.f, pos.Z);
+		boss->SetActorLocation(pos);	//–„‚à‚ê–hŽ~
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		break;
 	}

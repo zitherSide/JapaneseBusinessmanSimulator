@@ -26,15 +26,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI, meta = (ExposeOnSpawn = true))
 		FText content_;
 
-	UFUNCTION(BlueprintCallable, Category = Controller)
-		void BindController(class APlayerController* controller);
+	bool Initialize() override;
 
-
-protected:
-	virtual void RemoveFromParent() override;
 private:
-	class APlayerController* controller_ = nullptr;
-	class UInputComponent* input_ = nullptr;
 	void OnNext();
 	void Debug(float v);
 };

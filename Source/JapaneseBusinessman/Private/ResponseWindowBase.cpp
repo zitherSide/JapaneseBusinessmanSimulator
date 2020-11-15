@@ -14,35 +14,26 @@
 using namespace std;
 const float UResponseWindowBase::Threshold_ = 0.8f;
 
-void UResponseWindowBase::BindController(APlayerController* controller)
+bool UResponseWindowBase::Initialize()
 {
-	//InitializeでUGameStaticsからはコントローラーが取れなかった...なぜ？
-	UE_LOG(LogTemp, Log, TEXT("InitResponseWindow!"));
-
-	inputComp_ = NewObject<UInputComponent>();
-	if (inputComp_) {
-		inputComp_->BindAxis("UIup", this, &UResponseWindowBase::OnUpKey);
-		inputComp_->BindAction("Talk", IE_Pressed, this, &UResponseWindowBase::OnDecideKey);
+	if (!InputComponent) {
+		InitializeInputComponent();
+		if (InputComponent) {
+			InputComponent->BindAxis("UIup", this, &UResponseWindowBase::OnUpKey);
+			InputComponent->BindAction("Talk", IE_Pressed, this, &UResponseWindowBase::OnDecideKey);
+		}
 	}
-	else
-		UE_LOG(LogTemp, Log, TEXT("Could not new input component"));
 
-	controller_ = controller;
-	controller_->PushInputComponent(inputComp_);
-
-	return;
+	return Super::Initialize();
 }
 
-void UResponseWindowBase::RemoveFromParent()
+void UResponseWindowBase::Refocus()
 {
-	if(inputComp_ && controller_)
-		controller_->PopInputComponent(inputComp_);
-	Super::RemoveFromParent();
-}
-
-void UResponseWindowBase::InitFocus()
-{
-	responseList_->GetChildAt(currentIndex_)->SetFocus();
+	if (responseList_) {
+		auto* elem = responseList_->GetChildAt(currentIndex_);
+		if(elem)
+			elem->SetFocus();
+	}
 }
 
 void UResponseWindowBase::OnUpKey(float value)

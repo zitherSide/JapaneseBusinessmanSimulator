@@ -8,6 +8,7 @@
 #include <AIModule/Classes/AIController.h>
 #include <Engine/TargetPoint.h>
 #include <Components/CapsuleComponent.h>
+#include <algorithm>
 
 EBTNodeResult::Type UBounceAround::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
@@ -75,6 +76,7 @@ void UBounceAround::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemor
 		else {
 			endMode = EMovementMode::MOVE_Walking;
 			endPos = boss->bounceGoal_->GetActorLocation();
+			endPos.Z = std::max(5.f, endPos.Z);//–„‚à‚ê–hŽ~
 			m->Velocity = {};
 		}
 

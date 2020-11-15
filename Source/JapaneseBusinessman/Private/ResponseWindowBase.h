@@ -26,21 +26,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintAssignable, Category = Controller)
 		FOnDecideDelegate onDecide_;
 
-	UFUNCTION(BlueprintCallable, Category = Controller)
-		void BindController(class APlayerController* controller);
-
 	UFUNCTION(BlueprintCallable, Category = UI)
-		void InitFocus();
+		void Refocus();
+
+	bool Initialize() override;
 
 private:
-	class APlayerController* controller_ = nullptr;
-	class UInputComponent* inputComp_ = nullptr;
 	int currentIndex_ = 0;
 	bool detected_ = false;
 	static const float Threshold_;
-
-protected:
-	virtual void RemoveFromParent() override;
 
 private:
 	void OnUpKey(float value);

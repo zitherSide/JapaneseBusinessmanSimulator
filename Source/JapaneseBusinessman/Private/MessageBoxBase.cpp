@@ -3,21 +3,16 @@
 
 #include "MessageBoxBase.h"
 
-void UMessageBoxBase::BindController(APlayerController * controller)
+bool UMessageBoxBase::Initialize()
 {
-	controller_ = controller;
+	if (!InputComponent) {
+		InitializeInputComponent();
+		if (InputComponent) {
+			InputComponent->BindAction("Talk", IE_Pressed, this, &UMessageBoxBase::OnNext);
+		}
+	}
 
-	input_ = NewObject<UInputComponent>();
-	input_->BindAction("Talk", IE_Pressed, this, &UMessageBoxBase::OnNext);
-
-	controller_->PushInputComponent(input_);
-}
-
-void UMessageBoxBase::RemoveFromParent()
-{
-	if(controller_ && input_)
-		controller_->PopInputComponent(input_);
-	Super::RemoveFromParent();
+	return Super::Initialize();
 }
 
 void UMessageBoxBase::OnNext()
