@@ -15,14 +15,12 @@ bool UOpeningWIdgetBase::Initialize()
 		if (InputComponent) {
 			InputComponent->BindAxis("UIUp", this, &UOpeningWIdgetBase::OnAxisUp);
 			InputComponent->BindAction("Talk", IE_Pressed, this, &UOpeningWIdgetBase::OnDecide);
+			InputComponent->BindAction("OK", IE_Pressed, this, &UOpeningWIdgetBase::OnDecide);
 		}
 	}
 
 	currentIndex_ = 0;
 	bool ret = Super::Initialize();
-	UWidget* w = btnVertBox_->GetChildAt(currentIndex_);
-	if(w)
-		w->SetFocus();
 
 	return ret;
 }
@@ -34,6 +32,7 @@ void UOpeningWIdgetBase::Refocus()
 }
 void UOpeningWIdgetBase::OnAxisUp(float val)
 {
+
 	if (abs(val) < NeutralThreshold_) {
 		hasNeutraled_ = true;
 		return;
@@ -41,14 +40,13 @@ void UOpeningWIdgetBase::OnAxisUp(float val)
 
 	if (hasNeutraled_ && abs(val) > MoveThreshold_) {
 		if (val > 0)
-			++currentIndex_;
-		else
 			--currentIndex_;
+		else
+			++currentIndex_;
 
 		currentIndex_ = (currentIndex_ + btnVertBox_->GetChildrenCount()) % btnVertBox_->GetChildrenCount();
-		btnVertBox_->GetChildAt(currentIndex_)->SetFocus();
-		btnVertBox_->GetChildAt(currentIndex_)->SetKeyboardFocus();
 		hasNeutraled_ = false;
+		UE_LOG(LogTemp, Error,TEXT("currentIdx: %d"), currentIndex_);
 	}
 	return;
 }

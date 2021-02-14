@@ -3,7 +3,8 @@
 
 #include "NPCBase.h"
 #include "Animation/AnimMontage.h"
-#include "Components/TextRenderComponent.h"
+#include <Components/BoxComponent.h>
+#include <Blueprint/UserWidget.h>
 
 // Sets default values
 ANPCBase::ANPCBase()
@@ -12,8 +13,8 @@ ANPCBase::ANPCBase()
 	PrimaryActorTick.bCanEverTick = true;
 	SetRootComponent(RootComponent);
 
-	talkGuidance_ = CreateDefaultSubobject<UTextRenderComponent>(TEXT("TalkGuidance"));
-	talkGuidance_->SetupAttachment(RootComponent);
+	popUpRegion_ = CreateDefaultSubobject<UBoxComponent>(TEXT("popUpRegion"));
+	popUpRegion_->SetupAttachment(RootComponent);
 }
 
 
@@ -21,7 +22,6 @@ ANPCBase::ANPCBase()
 void ANPCBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -30,10 +30,3 @@ void ANPCBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-
-// Called to bind functionality to input
-void ANPCBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-}
-

@@ -16,7 +16,7 @@ EBTNodeResult::Type UFindTargetLocation::ExecuteTask(UBehaviorTreeComponent& Own
 		UBlackboardComponent* bb = OwnerComp.GetBlackboardComponent();
 		int index = bb->GetValueAsInt(destinationIndexKey_.SelectedKeyName);
 		if (p->destinations_.Num() == 0) {
-			UE_LOG(LogTemp, Error, TEXT("No destinations"));
+			//UE_LOG(LogTemp, Error, TEXT("No destinations"));
 			return EBTNodeResult::Failed;
 		}
 
@@ -25,6 +25,7 @@ EBTNodeResult::Type UFindTargetLocation::ExecuteTask(UBehaviorTreeComponent& Own
 		bb->SetValueAsVector(destinationKey_.SelectedKeyName, p->destinations_[index]->GetActorLocation());
 	}
 	else {
+		UE_LOG(LogTemp, Error, TEXT("Couldn't cast to emenybase"));
 		return EBTNodeResult::Failed;
 	}
 

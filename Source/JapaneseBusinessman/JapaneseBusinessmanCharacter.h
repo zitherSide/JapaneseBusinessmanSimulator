@@ -10,6 +10,9 @@
 #include "Templates/SubclassOf.h"
 #include "JapaneseBusinessmanCharacter.generated.h"
 
+DECLARE_DYNAMIC_DELEGATE(FStartSlash);
+DECLARE_DYNAMIC_DELEGATE(FEndSlash);
+
 UCLASS(config=Game)
 class AJapaneseBusinessmanCharacter : public APlayerBase
 {
@@ -26,26 +29,27 @@ public:
 	float BaseLookUpRate;
 
 	UPROPERTY(EditAnywhere, Category = Movement)
-		float runSpeed_ = 600.f;
-	UPROPERTY(EditAnywhere, Category = Movement)
-		float jumpSpeed_ = 1200.f;
-
-	UPROPERTY(EditAnywhere, Category = Movement)
-		float sprintSpeed_ = 1000.f;
-	
-	UPROPERTY(EditAnywhere, Category = Movement)
-		float dashSpeed_ = 2000.f;
-
-	UPROPERTY(EditAnywhere, Category = Movement)
-		float dashTime_ = 0.3f;
-
-	UPROPERTY(EditAnywhere, Category = Movement)
 		float knockBackForce_ = 40000.f;
 	UPROPERTY(EditAnywhere, Category = Movement)
 		float knockBackAngle_ = 30.f;
 
 	UPROPERTY(BlueprintReadWrite, Category = Movement)
 		bool isKnockBacking_ = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Slash)
+		bool canSlash_ = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Slash)
+		class UStaticMeshComponent* swordMesh_;
+	UPROPERTY(BlueprintReadWrite, Category = Slash)
+		int slashCount_ = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Slash)
+		TArray<float> slashFreezeTimes_{0.2f, 0.2f, 0.3f};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Slash)
+		TArray<float> slashFollowThroghTimes_{ 0.6f, 0.6f, 0.6f};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Slash)
+		TArray<int> slashChainValues_{ 1, 2, 3 };
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Slash)
+		TArray<float> slashDamages_{ 10, 10, 20 };
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
 		float knockBackSeconds_ = 1.f;
@@ -57,6 +61,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
 		class UArrowComponent* knockBackDirection_;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Slash)
+		FStartSlash slashStartDelegate_;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Slash)
+		FEndSlash slashEndDelegate_;
 
 protected:
 	/** Camera boom positioning the camera behind the character */
@@ -129,24 +138,26 @@ protected:
 private:
 	FTimerHandle dashTimerHandle_;
 	FTimerHandle knockBackTimerHandle_;
+	FTimerHandle slashTimerHandle_;
 	FVector knockBackingDir_;
+	float slashElapsedTime_ = 0.f;
 
 	void adjustMeshRotation();
 	void adjustDashMovement();
 	void adjustJumpMovement();
+	void adjustSlashMovement(float deltaSec);
 
-	bool isSprinting_ = false;
-	bool isDashing_ = false;
-	
+	void slash();
+	bool isSlashFreezing_ = false;
+	bool isSlashChainable_ = true;
+	void slashUnFreeze();
+	void slashUnchain();
 
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
-	UFUNCTION(BlueprintPure, BlueprintCallable)
-		bool isDashing() const { return isDashing_; }
 
 	UFUNCTION(BlueprintPure, BlueprintCallable)
 		bool isKnockBacking() const { return isKnockBacking_; }

@@ -21,6 +21,7 @@ bool UResponseWindowBase::Initialize()
 		if (InputComponent) {
 			InputComponent->BindAxis("UIup", this, &UResponseWindowBase::OnUpKey);
 			InputComponent->BindAction("Talk", IE_Pressed, this, &UResponseWindowBase::OnDecideKey);
+			InputComponent->BindAction("OK", IE_Pressed, this, &UResponseWindowBase::OnDecideKey);
 		}
 	}
 

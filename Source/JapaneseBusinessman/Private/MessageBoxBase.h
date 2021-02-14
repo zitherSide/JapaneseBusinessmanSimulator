@@ -28,6 +28,8 @@ public:
 
 	bool Initialize() override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Controller, meta = (ExposeOnSpawn = true))
+		bool takesOKButton_{ false };
 private:
 	void OnNext();
 	void Debug(float v);

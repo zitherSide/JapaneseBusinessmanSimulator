@@ -9,6 +9,8 @@ bool UMessageBoxBase::Initialize()
 		InitializeInputComponent();
 		if (InputComponent) {
 			InputComponent->BindAction("Talk", IE_Pressed, this, &UMessageBoxBase::OnNext);
+			if(takesOKButton_)
+				InputComponent->BindAction("OK", IE_Pressed, this, &UMessageBoxBase::OnNext);
 		}
 	}
 
@@ -17,6 +19,7 @@ bool UMessageBoxBase::Initialize()
 
 void UMessageBoxBase::OnNext()
 {
+	UE_LOG(LogTemp, Log, TEXT("OK"));
 	nextDispatcher_.Broadcast();
 }
 

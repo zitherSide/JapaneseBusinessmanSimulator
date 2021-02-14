@@ -13,6 +13,8 @@
 #include "Math/Vector.h"
 #include "GenericPlatform/GenericPlatformMath.h"
 #include "TimerManager.h"
+#include "Kismet/GamePlayStatics.h"
+#include "JapaneseBusinessmanGameMode.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AJapaneseBusinessmanCharacter
@@ -68,6 +70,7 @@ void AJapaneseBusinessmanCharacter::Tick(float deltaSeconds)
 	Super::Tick(deltaSeconds);
 	adjustDashMovement();
 	adjustJumpMovement();
+	adjustSlashMovement(deltaSeconds);
 }
 
 float AJapaneseBusinessmanCharacter::TakeDamage(float DamageAmount, FDamageEvent const & DamageEvent, AController * EventInstigator, AActor * DamageCauser)
@@ -79,12 +82,18 @@ float AJapaneseBusinessmanCharacter::TakeDamage(float DamageAmount, FDamageEvent
 	bounceDir.Normalize();
 	isKnockBacking_ = true;
 	isDashing_ = false;
+	slashCount_ = 0;
+	slashElapsedTime_ = 0;
 
 	currentHealth_ -= static_cast<int>(DamageAmount);
 	GetCharacterMovement()->Launch(bounceDir * knockBackForce_);
 	GetWorldTimerManager().ClearTimer(knockBackTimerHandle_);
 	GetWorldTimerManager().SetTimer(knockBackTimerHandle_, this, &AJapaneseBusinessmanCharacter::RecoverDamage, knockBackSeconds_, false);
 	
+	auto gm = Cast<AJapaneseBusinessmanGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (gm)
+		gm->damageCount_ += DamageAmount;
+
 	return DamageAmount;
 }
 
@@ -130,6 +139,7 @@ void AJapaneseBusinessmanCharacter::SetupPlayerInputComponent(class UInputCompon
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &AJapaneseBusinessmanCharacter::TouchStarted);
 	PlayerInputComponent->BindTouch(IE_Released, this, &AJapaneseBusinessmanCharacter::TouchStopped);
 
+	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AJapaneseBusinessmanCharacter::slash);
 	// VR headset functionality
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AJapaneseBusinessmanCharacter::OnResetVR);
 }
@@ -179,11 +189,12 @@ void AJapaneseBusinessmanCharacter::LookUpAtRate(float Rate)
 
 void AJapaneseBusinessmanCharacter::MoveForward(float Value)
 {
-	if (isKnockBacking_)
+	if (isKnockBacking_ || isSlashFreezing_)
 		return;
 
 	if ((Controller != NULL) && (Value != 0.0f))
 	{
+		slashCount_ = 0;
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -197,11 +208,12 @@ void AJapaneseBusinessmanCharacter::MoveForward(float Value)
 
 void AJapaneseBusinessmanCharacter::MoveRight(float Value)
 {
-	if (isKnockBacking_)
+	if (isKnockBacking_ || isSlashFreezing_)
 		return;
 
 	if ( (Controller != NULL) && (Value != 0.0f) )
 	{
+		slashCount_ = 0;
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -229,9 +241,10 @@ void AJapaneseBusinessmanCharacter::adjustMeshRotation()
 
 void AJapaneseBusinessmanCharacter::Jump()
 {
-	if (isKnockBacking_)
+	if (isKnockBacking_ || isSlashFreezing_)
 		return;
 
+	slashCount_ = 0;
 	Super::Jump();
 }
 void AJapaneseBusinessmanCharacter::StopJump()
@@ -257,12 +270,12 @@ void AJapaneseBusinessmanCharacter::StopSprint()
 
 void AJapaneseBusinessmanCharacter::Dash()
 {
-	if (isKnockBacking_)
+	if (isKnockBacking_ || isSlashFreezing_)
 		return;
 
 	UCharacterMovementComponent* m = GetCharacterMovement();
 	if (!isDashing_ && !m->IsFalling()) {
-
+		slashCount_ = 0;
 		isDashing_ = true;
 		GetCapsuleComponent()->SetCapsuleHalfHeight(dashHight_);
 		//GetCapsuleComponent()->AddRelativeLocation({ 0, 0, - standHight_ + dashHight_ });
@@ -325,4 +338,52 @@ void AJapaneseBusinessmanCharacter::Throw()
 	AProjectileBase* p = GetWorld()->SpawnActor<AProjectileBase>(throwObject_->GetDefaultObject()->GetClass(), t);
 	if(p)
 		p->SetLifeSpan(attackLifespan_);
+}
+
+void AJapaneseBusinessmanCharacter::slash()
+{
+	if (isKnockBacking_)
+		return;
+
+	if (!isSlashChainable_)
+		return;
+
+	if (GetCharacterMovement()->IsFalling()) {
+		//jump slash
+		return;
+	}
+	else if(slashCount_ != 3){
+		++slashCount_;
+	}
+	else {
+		slashCount_ = 1;	//3’i–Ú‚©‚ç‚Í1’i–Ú‚É‚Â‚È‚®
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("slash: %d"), slashCount_);
+	slashCount_ %= 4;
+	isSlashChainable_ = false;
+	isSlashFreezing_ = true;
+	GetWorldTimerManager().ClearTimer(slashTimerHandle_);
+	GetWorldTimerManager().SetTimer(slashTimerHandle_, this, &AJapaneseBusinessmanCharacter::slashUnFreeze, slashFreezeTimes_[slashCount_ - 1]);
+}
+
+void AJapaneseBusinessmanCharacter::adjustSlashMovement(float deltaSec)
+{
+	if(isSlashFreezing_)
+		GetCharacterMovement()->Velocity = FVector::ZeroVector;
+}
+
+void AJapaneseBusinessmanCharacter::slashUnFreeze()
+{
+	isSlashFreezing_ = false;
+	isSlashChainable_ = true;
+	
+	GetWorldTimerManager().ClearTimer(slashTimerHandle_);
+	GetWorldTimerManager().SetTimer(slashTimerHandle_, this, &AJapaneseBusinessmanCharacter::slashUnchain,
+		slashFollowThroghTimes_[slashCount_ - 1] - slashFreezeTimes_[slashCount_ - 1]);
+}
+
+void AJapaneseBusinessmanCharacter::slashUnchain()
+{
+	slashCount_ = 0;
 }

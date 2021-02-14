@@ -8,6 +8,8 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "SaveData/JapaneseBusinessmanSaveGame.h"
+#include "Widgets/TimerWidgetBase.h"
 
 AJapaneseBusinessmanGameMode::AJapaneseBusinessmanGameMode()
 {
@@ -23,13 +25,19 @@ AJapaneseBusinessmanGameMode::AJapaneseBusinessmanGameMode()
 
 void AJapaneseBusinessmanGameMode::BeginPlay()
 {
+	saveGame_ = Cast<UJapaneseBusinessmanSaveGame>(UGameplayStatics::LoadGameFromSlot(UJapaneseBusinessmanSaveGame::SlotName, UJapaneseBusinessmanSaveGame::SlotNo));
+	if (!saveGame_) {
+		saveGame_ = Cast<UJapaneseBusinessmanSaveGame>(UGameplayStatics::CreateSaveGameObject(UJapaneseBusinessmanSaveGame::StaticClass()));
+		UE_LOG(LogTemp, Warning, TEXT("Couldn't load saveGame.(%x)"), saveGame_);
+	}
+
 	if (widgetClass_) {
 		currentWidget_ = CreateWidget<UUserWidget>(GetWorld(), widgetClass_);
 		if (currentWidget_) {
 			currentWidget_->AddToViewport();
 		}
 	}
-	player_ = Cast<AJapaneseBusinessmanCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
+	player_ = Cast<APlayerBase>(UGameplayStatics::GetPlayerPawn(this, 0));
 	player_->FullRecoverHealth();
 	
 	Super::BeginPlay();
@@ -40,6 +48,20 @@ void AJapaneseBusinessmanGameMode::Tick(float deltaSeconds)
 	if (player_ && player_->isDead()) {
 		makePlayerRagdoll();
 		gameOverEvent_.Execute();
+	}
+
+	if (isCountingDown_) {
+		currentTime_ -= deltaSeconds;
+		if (timerWidget_) {
+			timerWidget_->time_ = currentTime_;
+		}
+
+		if (currentTime_ <= 0) {
+			currentTime_ = 0;
+			if(timerWidget_) timerWidget_->time_ = 0;
+			isCountingDown_ = false;
+			gameOverEvent_.ExecuteIfBound();
+		}
 	}
 }
 
@@ -53,7 +75,23 @@ void AJapaneseBusinessmanGameMode::makePlayerRagdoll()
 void AJapaneseBusinessmanGameMode::RespawnPlayer()
 {
 	player_->Destroy(true);
-	player_ = GetWorld()->SpawnActor<AJapaneseBusinessmanCharacter>(DefaultPawnClass->GetDefaultObject()->GetClass(), respawnPoint_->GetActorTransform());
+	player_ = GetWorld()->SpawnActor<APlayerBase>(DefaultPawnClass->GetDefaultObject()->GetClass(), respawnPoint_->GetActorTransform());
 	player_->FullRecoverHealth();
 	GetWorld()->GetFirstPlayerController()->Possess(player_);
+}
+
+void AJapaneseBusinessmanGameMode::Save()
+{
+	if (saveGame_) {
+		const bool res = UGameplayStatics::SaveGameToSlot(saveGame_, UJapaneseBusinessmanSaveGame::SlotName, UJapaneseBusinessmanSaveGame::SlotNo);
+		if (res) {
+			UE_LOG(LogTemp, Log, TEXT("Game saved."));
+		}
+		else {
+			UE_LOG(LogTemp, Error, TEXT("Coudn't save."));
+		}
+	}
+	else {
+		UE_LOG(LogTemp, Error, TEXT("Coudn't save, saveGame_ is null."));
+	}
 }

@@ -4,21 +4,31 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include <Templates/Subclassof.h>
 #include "NPCBase.generated.h"
 
 UCLASS()
 class ANPCBase : public ACharacter
 {
 	GENERATED_BODY()
-
 public:
-	// Sets default values for this character's properties
 	ANPCBase();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Talk, meta = (MakeEditWidget = true))
+		FVector popUpPos_;
+
+protected:
+	// Sets default values for this character's properties
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Talk)
 		class UAnimMontage* talkingAnim_;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Talk)
-		class UTextRenderComponent* talkGuidance_;
+		TSubclassOf<UUserWidget> popUpType_;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Talk)
+		class UUserWidget* popUp_;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Talk)
+		FText popUpContent_;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Talk)
+		class UBoxComponent* popUpRegion_;
 
 protected:
 	// Called when the game starts or when spawned
@@ -27,8 +37,4 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
 };

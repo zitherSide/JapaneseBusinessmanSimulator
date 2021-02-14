@@ -16,6 +16,23 @@ public:
 	// Sets default values for this character's properties
 	APlayerBase();
 
+	UPROPERTY(EditAnywhere, Category = Movement)
+		float runSpeed_ = 600.f;
+	UPROPERTY(EditAnywhere, Category = Movement)
+		float jumpSpeed_ = 1200.f;
+
+	UPROPERTY(EditAnywhere, Category = Movement)
+		float sprintSpeed_ = 1000.f;
+
+	UPROPERTY(EditAnywhere, Category = Movement)
+		float dashSpeed_ = 2000.f;
+
+	UPROPERTY(EditAnywhere, Category = Movement)
+		float dashTime_ = 0.3f;
+
+	UFUNCTION(BlueprintPure, BlueprintCallable)
+		bool isDashing() const { return isDashing_; }
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Status)
 		int maxHealth_ = 100;
@@ -26,6 +43,8 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	bool isSprinting_ = false;
+	bool isDashing_ = false;
 
 public:	
 	// Called every frame

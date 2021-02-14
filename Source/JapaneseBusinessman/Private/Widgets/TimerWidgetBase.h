@@ -4,16 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "PlayerHealthHUDBase.generated.h"
+#include "TimerWidgetBase.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UPlayerHealthHUDBase : public UUserWidget
+class UTimerWidgetBase : public UUserWidget
 {
 	GENERATED_BODY()
+
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
-		class APlayerBase* playerPawn_;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Time)
+		float time_;
+	
 };

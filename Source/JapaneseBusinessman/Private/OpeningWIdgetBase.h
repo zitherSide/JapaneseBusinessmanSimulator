@@ -23,15 +23,13 @@ public:
 		FDecideDelegater decideDelegater_;
 	UFUNCTION(BlueprintCallable, Category = UI)
 		void Refocus();
-private:
-	class APlayerController* controller_ = nullptr;
-	class UInputComponent* input_ = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int currentIndex_ = 0;
-	
+private:
 	void OnAxisUp(float val);
 	void OnDecide();
 
 	bool hasNeutraled_ = true;
-	const float NeutralThreshold_ = 0.2f;
+	const float NeutralThreshold_ = 0.4f;
 	const float MoveThreshold_ = 0.6f;
 };

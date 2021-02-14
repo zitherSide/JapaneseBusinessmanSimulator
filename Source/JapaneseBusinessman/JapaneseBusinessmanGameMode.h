@@ -20,10 +20,10 @@ public:
 		TSubclassOf<class UUserWidget> widgetClass_;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = UI)
-	class UUserWidget* currentWidget_;
+		class UUserWidget* currentWidget_;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
-	class AJapaneseBusinessmanCharacter* player_;
+		class APlayerBase* player_;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mode)
 		FGameOver gameOverEvent_;
@@ -31,15 +31,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
 		class AActor* respawnPoint_;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Story)
-		TMap<FString, bool> gameFlags_;
+	UPROPERTY(EditAnywhere, BLueprintReadWrite, Category = Game)
+		int damageCount_;
 
 	UFUNCTION(BlueprintCallable, Category = Pawn)
 		void makePlayerRagdoll();
 
 	UFUNCTION(BlueprintCallable, Category = Pawn)
 		void RespawnPlayer();
-protected:
+
+	UFUNCTION(BlueprintCallable, Category = Save)
+		void Save();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Story)
+		class UJapaneseBusinessmanSaveGame* saveGame_{ nullptr };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Time)
+		float timeLimit_{ 0 };
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Time)
+		float currentTime_{ 0 };
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Time)
+		bool isCountingDown_{ false };
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Time)
+		bool hasTimeLimit_{ false };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Time)
+		class UTimerWidgetBase* timerWidget_;
+
 	virtual void BeginPlay() override;
 	virtual void Tick(float deltaSeconds) override;
 
